@@ -79,9 +79,9 @@ variable "public_ssh_key" {
   type = string
 }
 
-variable "key_s3_bucket_name" {
-  type = string
-}
+# variable "key_s3_bucket_name" {
+#   type = string
+# }
 
 variable "configure_aws_provider" {
   type = string
