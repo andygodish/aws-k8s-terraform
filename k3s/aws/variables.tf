@@ -1,8 +1,14 @@
-// Region
+// Terraform User
+variable "tfuser" {
+  description = "Adds your name to the resources"
+  type = string
+  default = "terraform"
+}
 
+// Region
 variable "region" {
   type    = string
-  default = "us-east-1"
+  default = "us-gov-west-1"
 }
 
 // VPC CIDR

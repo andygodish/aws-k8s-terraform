@@ -1,5 +1,11 @@
 // Region
 
+variable "tfuser" {
+  description = "Adds your name to the resources"
+  type = string
+  default = "andyg"
+}
+
 variable "cluster_name" {
   type = string
   default = "k8s-cluster"
@@ -7,7 +13,7 @@ variable "cluster_name" {
 
 variable "region" {
   type    = string
-  default = "us-east-1"
+  default = "us-gov-west-1"
 }
 
 // VPC CIDR
@@ -39,13 +45,13 @@ variable "public_subnet_2_cidr" {
   default = "10.0.12.0/24"
 }
 
-variable "db_username" {
-  type = string
-}
+# variable "db_username" {
+#   type = string
+# }
 
-variable "db_password" {
-  type = string
-}
+# variable "db_password" {
+#   type = string
+# }
 
 variable "public_ssh_key" {
   type = string

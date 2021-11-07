@@ -1,25 +1,25 @@
-data "template_file" "server_userdata" {
-  template = "${file("${path.module}/templates/server_userdata.sh")}"
+# data "template_file" "server_userdata" {
+#   template = "${file("${path.module}/templates/server_userdata.sh")}"
 
-  vars = {
-    cp_lb_host = aws_elb.k8s_cp_elb.dns_name
-    datastore_endpoint = "postgres://${aws_rds_cluster.k8s_backend_db_cluster.master_username}:${aws_rds_cluster.k8s_backend_db_cluster.master_password}@${aws_rds_cluster.k8s_backend_db_cluster.endpoint}/${aws_rds_cluster.k8s_backend_db_cluster.database_name}"
-    k3s_token = random_string.k3s_token.result
-    s3_bucket = var.key_s3_bucket_name
-    configure_aws_provider = var.configure_aws_provider
-  }
-}
+#   vars = {
+#     cp_lb_host = aws_elb.k8s_cp_elb.dns_name
+#     # datastore_endpoint = "postgres://${aws_rds_cluster.k8s_backend_db_cluster.master_username}:${aws_rds_cluster.k8s_backend_db_cluster.master_password}@${aws_rds_cluster.k8s_backend_db_cluster.endpoint}/${aws_rds_cluster.k8s_backend_db_cluster.database_name}"
+#     k3s_token = random_string.k3s_token.result
+#     s3_bucket = var.key_s3_bucket_name
+#     configure_aws_provider = var.configure_aws_provider
+#   }
+# }
 
-data "template_file" "agent_userdata" {
-  template = "${file("${path.module}/templates/agent_userdata.sh")}"
+# data "template_file" "agent_userdata" {
+#   template = "${file("${path.module}/templates/agent_userdata.sh")}"
 
-  vars = {
-    cp_lb_host = aws_elb.k8s_cp_elb.dns_name
-    k3s_token = random_string.k3s_token.result
-    k3s_agent_count = var.k3s_agent_count
-    configure_aws_provider = var.configure_aws_provider
-  }
-}
+#   vars = {
+#     cp_lb_host = aws_elb.k8s_cp_elb.dns_name
+#     k3s_token = random_string.k3s_token.result
+#     k3s_agent_count = var.k3s_agent_count
+#     configure_aws_provider = var.configure_aws_provider
+#   }
+# }
 
 ###########
 # KEYPAIR #
@@ -28,8 +28,8 @@ data "template_file" "agent_userdata" {
 module "key_pair" {
   source = "terraform-aws-modules/key-pair/aws"
 
-  key_name   = "${var.cluster_name}-keypair"
-  public_key = var.public_ssh_key 
+  key_name   = "${var.tfuser}-keypair"
+  public_key = var.public_ssh_key
 }
 
 #############
@@ -37,7 +37,7 @@ module "key_pair" {
 #############
 
 resource "random_string" "k3s_token" {
-  length = 20
+  length  = 20
   special = false
 }
 
@@ -52,9 +52,9 @@ resource "aws_s3_bucket" "k8s_data_bucket" {
   force_destroy = true
 
   tags = {
-    Name = "k8s-data-bucket"
+    Name                                        = "k8s-data-bucket"
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-    "KubernetesCluster"                 = var.cluster_name
+    "KubernetesCluster"                         = var.cluster_name
   }
 }
 
@@ -83,9 +83,10 @@ resource "aws_security_group" "bastion_sg" {
   }
 
   tags = {
-    Name = "bastion-sg"
+    Name                                        = "bastion-sg"
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-    "KubernetesCluster"                 = var.cluster_name
+    "KubernetesCluster"                         = var.cluster_name
+    Owner                                       = var.tfuser
   }
 }
 
@@ -93,16 +94,17 @@ resource "aws_instance" "bastion" {
   ami           = var.ami_id
   instance_type = "t2.micro"
 
-  subnet_id = aws_subnet.k8s_public_subnet_1.id
-  vpc_security_group_ids = [aws_security_group.bastion_sg.id]
+  subnet_id                   = aws_subnet.k8s_public_subnet_1.id
+  vpc_security_group_ids      = [aws_security_group.bastion_sg.id]
   associate_public_ip_address = true
 
-  key_name = "${var.cluster_name}-keypair"
+  key_name = "${var.tfuser}-keypair"
 
   tags = {
-    Name = "k8s-bastion"
+    Name                                        = "k8s-bastion"
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-    "KubernetesCluster"                 = var.cluster_name
+    "KubernetesCluster"                         = var.cluster_name
+    Owner                                       = var.tfuser
   }
 }
 
@@ -123,9 +125,10 @@ resource "aws_security_group" "k8s_cp_sg" {
   }
 
   tags = {
-    Name = "k8s-cp-sg"
+    Name                                        = "k8s-cp-sg"
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-    "KubernetesCluster"                 = var.cluster_name
+    "KubernetesCluster"                         = var.cluster_name
+    Owner                                       = var.tfuser
   }
 }
 
@@ -134,18 +137,18 @@ resource "aws_security_group_rule" "k8s_cp_sg_self_ingress" {
   from_port         = 0
   to_port           = 0
   protocol          = "-1"
-  cidr_blocks = [aws_vpc.k8s_vpc.cidr_block]
+  cidr_blocks       = [aws_vpc.k8s_vpc.cidr_block]
   security_group_id = aws_security_group.k8s_cp_sg.id
 }
 
 resource "aws_security_group_rule" "k8s_cp_ingress" {
-    description = "Ingress Control Plane"
-    type        = "ingress"
-    from_port   = 6443
-    to_port     = 6443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-   security_group_id = aws_security_group.k8s_cp_sg.id
+  description       = "Ingress Control Plane"
+  type              = "ingress"
+  from_port         = 6443
+  to_port           = 6443
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.k8s_cp_sg.id
 }
 
 resource "aws_iam_policy" "k8s_master_iam_policy" {
@@ -264,9 +267,10 @@ resource "aws_iam_role" "k8s_master_iam_role" {
 EOF
 
   tags = {
-    Name = "k8s_server_role"
+    Name                                        = "k8s_server_role"
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-    "KubernetesCluster"                 = var.cluster_name
+    "KubernetesCluster"                         = var.cluster_name
+    Owner                                       = var.tfuser
   }
 }
 
@@ -300,7 +304,7 @@ resource "aws_launch_template" "k8s_master_launch_template" {
     name = aws_iam_instance_profile.k8s_master_iam_profile.name
   }
 
-  image_id = var.ami_id
+  image_id      = var.ami_id
   instance_type = var.k3s_server_size
 
   monitoring {
@@ -313,27 +317,27 @@ resource "aws_launch_template" "k8s_master_launch_template" {
     resource_type = "instance"
 
     tags = {
-      Name = "k8s-master"
+      Name                                        = "k8s-master"
       "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-      "KubernetesCluster"                 = var.cluster_name
+      "KubernetesCluster"                         = var.cluster_name
 
     }
   }
 
-  key_name = "${var.cluster_name}-keypair" 
-  user_data = base64encode(data.template_file.server_userdata.rendered)
+  key_name  = "${var.tfuser}-keypair"
+  # user_data = base64encode(data.template_file.server_userdata.rendered) 
 }
 
 resource "aws_autoscaling_group" "k8s_master_asg" {
-  name                 = "k8s-master-asg"
+  name = "k8s-master-asg"
 
   launch_template {
     id      = aws_launch_template.k8s_master_launch_template.id
     version = "$Latest"
   }
 
-  min_size             = var.k3s_server_count
-  max_size             = var.k3s_server_count
+  min_size         = var.k3s_server_count
+  max_size         = var.k3s_server_count
   desired_capacity = var.k3s_server_count
 
   vpc_zone_identifier = [aws_subnet.k8s_private_subnet_1.id, aws_subnet.k8s_private_subnet_2.id]
@@ -343,14 +347,14 @@ resource "aws_autoscaling_group" "k8s_master_asg" {
   }
 
   tag {
-    key = "kubernetes.io/cluster/${var.cluster_name}"
-    value = "owned"
+    key                 = "kubernetes.io/cluster/${var.cluster_name}"
+    value               = "owned"
     propagate_at_launch = true
   }
 
   tag {
-    key = "KubernetesCluster"
-    value = var.cluster_name
+    key                 = "KubernetesCluster"
+    value               = var.cluster_name
     propagate_at_launch = true
   }
 }
@@ -372,9 +376,9 @@ resource "aws_security_group" "k8s_agent_sg" {
   }
 
   tags = {
-    Name = "k8s-agent-sg"
+    Name                                        = "k8s-agent-sg"
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-    "KubernetesCluster"                 = var.cluster_name
+    "KubernetesCluster"                         = var.cluster_name
   }
 }
 
@@ -383,7 +387,7 @@ resource "aws_security_group_rule" "k8s_agent_sg_http_ingress" {
   from_port         = 80
   to_port           = 80
   protocol          = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.k8s_agent_sg.id
 }
 
@@ -393,7 +397,7 @@ resource "aws_security_group_rule" "k8s_agent_sg_https_ingress" {
   from_port         = 443
   to_port           = 443
   protocol          = "tcp"
-  cidr_blocks = ["0.0.0.0/0"]
+  cidr_blocks       = ["0.0.0.0/0"]
   security_group_id = aws_security_group.k8s_agent_sg.id
 }
 
@@ -402,7 +406,7 @@ resource "aws_security_group_rule" "k8s_agent_sg_self_ingress" {
   from_port         = 0
   to_port           = 0
   protocol          = "-1"
-  cidr_blocks = [aws_vpc.k8s_vpc.cidr_block]
+  cidr_blocks       = [aws_vpc.k8s_vpc.cidr_block]
   security_group_id = aws_security_group.k8s_agent_sg.id
 }
 
@@ -426,9 +430,9 @@ resource "aws_iam_role" "k8s_agent_iam_role" {
 EOF
 
   tags = {
-    Name = "k8s_agent_role"
+    Name                                        = "k8s_agent_role"
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-    "KubernetesCluster"                 = var.cluster_name
+    "KubernetesCluster"                         = var.cluster_name
   }
 }
 
@@ -486,7 +490,7 @@ resource "aws_launch_template" "k8s_agent_launch_template" {
     name = aws_iam_instance_profile.k8s_agent_iam_profile.name
   }
 
-  image_id = var.ami_id
+  image_id      = var.ami_id
   instance_type = var.k3s_server_size
 
   monitoring {
@@ -499,26 +503,26 @@ resource "aws_launch_template" "k8s_agent_launch_template" {
     resource_type = "instance"
 
     tags = {
-      Name = "k8s-agent"
+      Name                                        = "k8s-agent"
       "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-      "KubernetesCluster"                 = var.cluster_name
+      "KubernetesCluster"                         = var.cluster_name
     }
   }
 
-  key_name = "${var.cluster_name}-keypair" 
-  user_data = base64encode(data.template_file.agent_userdata.rendered)
+  key_name  = "${var.tfuser}-keypair"
+  # user_data = base64encode(data.template_file.agent_userdata.rendered)
 }
 
 resource "aws_autoscaling_group" "k8s_agent_asg" {
-  name                 = "k8s-agent-asg"
+  name = "k8s-agent-asg"
 
   launch_template {
     id      = aws_launch_template.k8s_agent_launch_template.id
     version = "$Latest"
   }
 
-  min_size             = var.k3s_agent_count
-  max_size             = var.k3s_agent_count
+  min_size         = var.k3s_agent_count
+  max_size         = var.k3s_agent_count
   desired_capacity = var.k3s_agent_count
 
   vpc_zone_identifier = [aws_subnet.k8s_private_subnet_1.id, aws_subnet.k8s_private_subnet_2.id]
@@ -533,7 +537,7 @@ resource "aws_autoscaling_group" "k8s_agent_asg" {
 #####################
 
 resource "aws_elb" "k8s_cp_elb" {
-  name               = "k8s-cp-elb"
+  name = "k8s-cp-elb"
 
   subnets = [aws_subnet.k8s_public_subnet_1.id, aws_subnet.k8s_public_subnet_2.id]
 
@@ -558,9 +562,9 @@ resource "aws_elb" "k8s_cp_elb" {
   connection_draining_timeout = 400
 
   tags = {
-    Name = "k8s-cp-elb"
+    Name                                        = "k8s-cp-elb"
     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-    "KubernetesCluster"                 = var.cluster_name
+    "KubernetesCluster"                         = var.cluster_name
   }
 
   security_groups = [aws_security_group.k8s_cp_sg.id]
