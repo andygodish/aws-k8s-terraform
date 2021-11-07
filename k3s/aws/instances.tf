@@ -45,18 +45,18 @@ resource "random_string" "k3s_token" {
 # KEY S3 BUCKET #
 #################
 
-resource "aws_s3_bucket" "k8s_data_bucket" {
-  bucket = var.key_s3_bucket_name
-  acl    = "private"
+# resource "aws_s3_bucket" "k8s_data_bucket" {
+#   bucket = var.key_s3_bucket_name
+#   acl    = "private"
 
-  force_destroy = true
+#   force_destroy = true
 
-  tags = {
-    Name                                        = "k8s-data-bucket"
-    "kubernetes.io/cluster/${var.cluster_name}" = "owned"
-    "KubernetesCluster"                         = var.cluster_name
-  }
-}
+#   tags = {
+#     Name                                        = "k8s-data-bucket"
+#     "kubernetes.io/cluster/${var.cluster_name}" = "owned"
+#     "KubernetesCluster"                         = var.cluster_name
+#   }
+# }
 
 ###########
 # BASTION #
@@ -151,26 +151,26 @@ resource "aws_security_group_rule" "k8s_cp_ingress" {
   security_group_id = aws_security_group.k8s_cp_sg.id
 }
 
-resource "aws_iam_policy" "k8s_master_iam_policy" {
-  name        = "k8s-master-iam-policy"
-  path        = "/"
-  description = "K8S Master IAM Policy"
+# resource "aws_iam_policy" "k8s_master_iam_policy" {
+#   name        = "k8s-master-iam-policy"
+#   path        = "/"
+#   description = "K8S Master IAM Policy"
 
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": [
-        "s3:*"
-      ],
-      "Effect": "Allow",
-      "Resource": "arn:aws:s3:::${var.key_s3_bucket_name}/*"
-    }
-  ]
-}
-EOF
-}
+#   policy = <<EOF
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [
+#     {
+#       "Action": [
+#         "s3:*"
+#       ],
+#       "Effect": "Allow",
+#       "Resource": "arn:aws:s3:::${var.key_s3_bucket_name}/*"
+#     }
+#   ]
+# }
+# EOF
+# }
 
 resource "aws_iam_policy" "k8s_master_aws_iam_policy" {
   name        = "k8s-master-aws-iam-policy"
