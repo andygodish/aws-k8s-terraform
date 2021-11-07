@@ -67,13 +67,13 @@ variable "k3s_agent_size" {
   default = "t2.xlarge"
 }
 
-variable "db_username" {
-  type = string
-}
+# variable "db_username" {
+#   type = string
+# }
 
-variable "db_password" {
-  type = string
-}
+# variable "db_password" {
+#   type = string
+# }
 
 variable "public_ssh_key" {
   type = string
