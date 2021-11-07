@@ -279,10 +279,10 @@ resource "aws_iam_role_policy_attachment" "k8s_master_aws_iam_attach" {
   policy_arn = aws_iam_policy.k8s_master_aws_iam_policy.arn
 }
 
-resource "aws_iam_role_policy_attachment" "k8s_master_iam_attach" {
-  role       = aws_iam_role.k8s_master_iam_role.name
-  policy_arn = aws_iam_policy.k8s_master_iam_policy.arn
-}
+# resource "aws_iam_role_policy_attachment" "k8s_master_iam_attach" {
+#   role       = aws_iam_role.k8s_master_iam_role.name
+#   policy_arn = aws_iam_policy.k8s_master_iam_policy.arn
+# }
 
 resource "aws_iam_instance_profile" "k8s_master_iam_profile" {
   name = "k8s-master-iam-profile"
